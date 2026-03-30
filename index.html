@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgroRadar — Acceso</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --verde: #1D9E75;
+    --verde-dark: #0f6e56;
+    --verde-light: #e8f7f2;
+    --tierra: #8B6914;
+    --texto: #1a1a18;
+    --gris: #6b6b68;
+    --borde: #e2e2dc;
+    --fondo: #f7f6f2;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--fondo);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Fondo con textura sutil */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 20% 80%, rgba(29,158,117,.07) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 20%, rgba(139,105,20,.05) 0%, transparent 50%);
+    pointer-events: none;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 420px;
+    padding: 20px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .logo-area {
+    text-align: center;
+    margin-bottom: 40px;
+    animation: fadeDown .6s ease both;
+  }
+
+  .logo-icon {
+    width: 52px;
+    height: 52px;
+    background: var(--verde);
+    border-radius: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+    box-shadow: 0 8px 24px rgba(29,158,117,.25);
+  }
+
+  .logo-icon svg {
+    width: 28px;
+    height: 28px;
+    fill: white;
+  }
+
+  .logo-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 32px;
+    color: var(--texto);
+    letter-spacing: -.5px;
+    margin-bottom: 6px;
+  }
+
+  .logo-title span {
+    color: var(--verde);
+  }
+
+  .logo-sub {
+    font-size: 13px;
+    color: var(--gris);
+    font-weight: 300;
+    letter-spacing: .02em;
+  }
+
+  .card {
+    background: white;
+    border-radius: 16px;
+    padding: 32px;
+    border: 1px solid var(--borde);
+    box-shadow: 0 4px 24px rgba(0,0,0,.06), 0 1px 4px rgba(0,0,0,.04);
+    animation: fadeUp .6s .1s ease both;
+  }
+
+  .card-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--gris);
+    margin-bottom: 20px;
+    text-align: center;
+    letter-spacing: .02em;
+  }
+
+  .field {
+    position: relative;
+    margin-bottom: 16px;
+  }
+
+  .field input {
+    width: 100%;
+    padding: 14px 16px;
+    border: 1.5px solid var(--borde);
+    border-radius: 10px;
+    font-size: 15px;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--texto);
+    background: var(--fondo);
+    outline: none;
+    transition: border-color .2s, box-shadow .2s;
+    letter-spacing: .08em;
+  }
+
+  .field input:focus {
+    border-color: var(--verde);
+    box-shadow: 0 0 0 3px rgba(29,158,117,.12);
+    background: white;
+  }
+
+  .field input::placeholder {
+    color: #bbb;
+    letter-spacing: .02em;
+  }
+
+  .btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--verde);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: background .2s, transform .1s, box-shadow .2s;
+    letter-spacing: .02em;
+    margin-top: 4px;
+  }
+
+  .btn:hover { background: var(--verde-dark); box-shadow: 0 4px 16px rgba(29,158,117,.3); }
+  .btn:active { transform: scale(.98); }
+
+  .error {
+    margin-top: 12px;
+    padding: 10px 14px;
+    background: #fef2f0;
+    border: 1px solid #f5c6be;
+    border-radius: 8px;
+    font-size: 12px;
+    color: #c0392b;
+    text-align: center;
+    display: none;
+  }
+
+  .footer-note {
+    text-align: center;
+    margin-top: 24px;
+    font-size: 11px;
+    color: #bbb;
+    animation: fadeUp .6s .2s ease both;
+  }
+
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="logo-area">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/>
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-5h2v2h-2zm0-8h2v6h-2z"/>
+      </svg>
+    </div>
+    <div class="logo-title">Agro<span>Radar</span></div>
+    <div class="logo-sub">Inteligencia de mercados agropecuarios · Uruguay</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Ingresá tu clave de acceso</div>
+    <div class="field">
+      <input type="password" id="pwd" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn" onclick="login()">Ingresar al dashboard</button>
+    <div class="error" id="err">Clave incorrecta. Intentá de nuevo.</div>
+  </div>
+
+  <div class="footer-note">AgroRadar · Lavalleja, Uruguay · 2026</div>
+</div>
+
+<script>
+  // Clave de acceso — podés cambiarla cuando quieras
+  const CLAVE = "campo2026";
+
+  document.getElementById('pwd').addEventListener('keydown', e => {
+    if (e.key === 'Enter') login();
+  });
+
+  function login() {
+    const val = document.getElementById('pwd').value;
+    const err = document.getElementById('err');
+    if (val === CLAVE) {
+      sessionStorage.setItem('ar_auth', '1');
+      window.location.href = 'dashboard.html';
+    } else {
+      err.style.display = 'block';
+      document.getElementById('pwd').value = '';
+      document.getElementById('pwd').focus();
+      setTimeout(() => err.style.display = 'none', 3000);
+    }
+  }
+</script>
+</body>
+</html>

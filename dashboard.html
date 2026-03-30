@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgroRadar — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --verde: #1D9E75; --verde-dark: #0f6e56; --verde-light: #e8f7f2;
+    --tierra: #8B6914; --tierra-light: #fdf5e0;
+    --rojo: #C0392B; --rojo-light: #fdf0ef;
+    --azul: #2563EB; --azul-light: #eff6ff;
+    --texto: #1a1a18; --gris: #6b6b68; --gris-light: #f7f6f2;
+    --borde: #e2e2dc; --blanco: #ffffff;
+    --sidebar-w: 230px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: #f4f3ef; color: var(--texto); min-height: 100vh; }
+
+  /* SIDEBAR */
+  .sidebar { position: fixed; top: 0; left: 0; bottom: 0; width: var(--sidebar-w); background: #111; display: flex; flex-direction: column; z-index: 100; }
+  .sidebar-logo { padding: 20px; border-bottom: 1px solid rgba(255,255,255,.08); }
+  .sidebar-logo-title { font-family: 'DM Serif Display', serif; font-size: 22px; color: white; }
+  .sidebar-logo-title span { color: var(--verde); }
+  .sidebar-logo-sub { font-size: 10px; color: rgba(255,255,255,.35); margin-top: 2px; }
+  .sidebar-section { font-size: 9px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,.25); padding: 14px 20px 5px; }
+  .nav-link { display: flex; align-items: center; gap: 9px; padding: 9px 20px; font-size: 12.5px; color: rgba(255,255,255,.55); text-decoration: none; cursor: pointer; border: none; background: none; width: 100%; font-family: 'DM Sans', sans-serif; transition: all .15s; }
+  .nav-link:hover { color: white; background: rgba(255,255,255,.05); }
+  .nav-link.on { color: white; background: rgba(29,158,117,.18); border-left: 2px solid var(--verde); }
+  .nav-link svg { width: 15px; height: 15px; opacity: .6; flex-shrink: 0; }
+  .nav-link.on svg { opacity: 1; }
+  .sidebar-bottom { margin-top: auto; padding: 14px 20px; border-top: 1px solid rgba(255,255,255,.07); }
+  .week-info { font-size: 10px; color: rgba(255,255,255,.3); margin-bottom: 8px; }
+  .logout-btn { font-size: 11px; color: rgba(255,255,255,.3); background: none; border: none; cursor: pointer; font-family: 'DM Sans', sans-serif; padding: 0; }
+  .logout-btn:hover { color: rgba(255,255,255,.6); }
+
+  /* MAIN */
+  .main { margin-left: var(--sidebar-w); min-height: 100vh; padding: 28px 28px 60px; }
+  .page { display: none; }
+  .page.on { display: block; }
+
+  /* PAGE HEADER */
+  .page-header { margin-bottom: 22px; display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+  .page-title { font-family: 'DM Serif Display', serif; font-size: 26px; color: var(--texto); letter-spacing: -.3px; }
+  .page-sub { font-size: 11px; color: var(--gris); margin-top: 2px; }
+  .week-chip { font-size: 10px; padding: 4px 11px; background: var(--verde-light); border: 1px solid #b8e8d8; border-radius: 20px; color: var(--verde-dark); font-weight: 500; }
+
+  /* METRICS */
+  .metrics { display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: 10px; margin-bottom: 20px; }
+  .mc { background: white; border-radius: 10px; padding: 13px 15px; border: 1px solid var(--borde); }
+  .mc-label { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--gris); margin-bottom: 5px; }
+  .mc-value { font-family: 'DM Serif Display', serif; font-size: 24px; color: var(--texto); line-height: 1; margin-bottom: 3px; }
+  .mc-delta { font-size: 10px; font-weight: 500; }
+  .up { color: var(--verde); } .dn { color: var(--rojo); } .neu { color: var(--gris); } .wa { color: var(--tierra); }
+
+  /* CARDS */
+  .card { background: white; border-radius: 12px; border: 1px solid var(--borde); padding: 18px 20px; margin-bottom: 14px; }
+  .card-title { font-size: 13px; font-weight: 600; color: var(--texto); margin-bottom: 2px; }
+  .card-sub { font-size: 10px; color: var(--gris); margin-bottom: 12px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  @media(max-width:900px){ .grid2,.grid3 { grid-template-columns: 1fr; } }
+
+  /* TABLES */
+  .ptable { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .ptable th { text-align: left; padding: 5px 8px; font-size: 9px; font-weight: 600; color: var(--gris); text-transform: uppercase; letter-spacing: .05em; border-bottom: 1px solid var(--borde); }
+  .ptable th:not(:first-child) { text-align: right; }
+  .ptable td { padding: 9px 8px; border-bottom: 1px solid #f0f0ea; }
+  .ptable td:not(:first-child) { text-align: right; }
+  .ptable tr:last-child td { border-bottom: none; }
+  .ptable tr:hover td { background: var(--gris-light); }
+  .ptable .cat { font-weight: 500; }
+  .ptable .unit { font-size: 9px; color: var(--gris); }
+
+  /* SIGNALS */
+  .signal { display: flex; align-items: flex-start; gap: 9px; padding: 9px 12px; border-radius: 8px; margin-bottom: 7px; background: var(--gris-light); font-size: 11px; }
+  .sig-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-top: 3px; }
+  .sig-text { flex: 1; line-height: 1.5; color: var(--texto); }
+  .sig-badge { font-size: 9px; padding: 2px 7px; border-radius: 8px; font-weight: 600; flex-shrink: 0; }
+  .badge-up { background: var(--verde-light); color: var(--verde-dark); }
+  .badge-dn { background: var(--rojo-light); color: var(--rojo); }
+  .badge-wa { background: var(--tierra-light); color: var(--tierra); }
+
+  /* TV LINKS */
+  .tv-link { display: flex; align-items: center; padding: 11px 13px; border: 1px solid var(--borde); border-radius: 9px; margin-bottom: 7px; background: white; text-decoration: none; transition: all .15s; }
+  .tv-link:hover { border-color: var(--verde); box-shadow: 0 3px 12px rgba(0,0,0,.06); }
+  .tv-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; margin-right: 10px; }
+  .tv-info { flex: 1; }
+  .tv-name { font-size: 13px; font-weight: 600; color: var(--texto); }
+  .tv-sym { font-size: 10px; color: var(--gris); font-family: monospace; }
+  .tv-badge { font-size: 9px; padding: 2px 8px; border-radius: 8px; font-weight: 500; margin: 0 8px; }
+  .tv-arrow { font-size: 14px; color: var(--verde); }
+  .imp-up { background: var(--verde-light); color: var(--verde-dark); }
+  .imp-dn { background: var(--rojo-light); color: var(--rojo); }
+  .imp-neu { background: var(--gris-light); color: var(--gris); border: 1px solid var(--borde); }
+
+  /* MARKET EXPLAINER */
+  .market-card { background: white; border: 1px solid var(--borde); border-radius: 12px; overflow: hidden; margin-bottom: 14px; }
+  .market-card-top { padding: 14px 16px; border-bottom: 1px solid var(--borde); }
+  .market-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .market-name { font-size: 15px; font-weight: 700; color: var(--texto); }
+  .market-sym { font-size: 10px; color: var(--gris); font-family: monospace; margin-top: 1px; }
+  .market-desc { font-size: 11px; color: var(--gris); line-height: 1.6; margin-bottom: 10px; }
+  .signal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+  .signal-box { border-radius: 8px; padding: 9px 11px; }
+  .signal-box.green { background: var(--verde-light); border: 1px solid #b8e8d8; }
+  .signal-box.red { background: var(--rojo-light); border: 1px solid #f5c6be; }
+  .signal-box-title { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 3px; }
+  .signal-box.green .signal-box-title { color: var(--verde-dark); }
+  .signal-box.red .signal-box-title { color: var(--rojo); }
+  .signal-box-text { font-size: 10px; line-height: 1.5; color: var(--texto); }
+  .market-card-bottom { padding: 10px 16px; background: var(--gris-light); display: flex; align-items: center; justify-content: space-between; }
+  .market-card-bottom a { font-size: 11px; font-weight: 600; color: var(--verde); text-decoration: none; }
+  .market-card-bottom a:hover { text-decoration: underline; }
+  .market-conversion { font-size: 10px; color: var(--gris); font-family: monospace; background: white; padding: 3px 8px; border-radius: 5px; border: 1px solid var(--borde); }
+
+  /* SIMULADOR */
+  .sim-field { margin-bottom: 11px; }
+  .sim-label { font-size: 11px; font-weight: 500; color: var(--gris); margin-bottom: 4px; }
+  .sim-input { width: 100%; padding: 9px 11px; border: 1.5px solid var(--borde); border-radius: 8px; font-size: 13px; font-family: 'DM Sans', sans-serif; color: var(--texto); background: var(--gris-light); outline: none; transition: border-color .15s; }
+  .sim-input:focus { border-color: var(--verde); background: white; }
+  .sim-result { background: var(--gris-light); border-radius: 9px; padding: 14px 16px; }
+  .sim-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--borde); font-size: 12px; }
+  .sim-row:last-child { border-bottom: none; font-weight: 600; font-size: 13px; }
+  .sim-veredicto { margin-top: 10px; padding: 10px 13px; border-radius: 8px; font-size: 11px; font-weight: 500; text-align: center; }
+  .tab-row { display: flex; gap: 3px; margin-bottom: 14px; border-bottom: 1px solid var(--borde); }
+  .tab-btn { font-size: 11px; padding: 7px 14px; border: none; background: none; cursor: pointer; color: var(--gris); border-bottom: 2px solid transparent; margin-bottom: -1px; font-family: 'DM Sans', sans-serif; }
+  .tab-btn.on { color: var(--verde); border-bottom-color: var(--verde); font-weight: 600; }
+  .sim-tab { display: none; }
+  .sim-tab.on { display: block; }
+
+  /* ══ ASISTENTE IA ══ */
+  .ai-panel {
+    background: white;
+    border: 1px solid var(--borde);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-top: 14px;
+  }
+  .ai-header {
+    padding: 12px 16px;
+    background: linear-gradient(135deg, #111 0%, #1a2a1a 100%);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .ai-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--verde); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  .ai-title { font-size: 12px; font-weight: 600; color: white; }
+  .ai-subtitle { font-size: 10px; color: rgba(255,255,255,.45); margin-left: auto; }
+
+  .ai-messages {
+    height: 260px;
+    overflow-y: auto;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: #fafaf8;
+  }
+
+  .ai-msg { display: flex; gap: 8px; align-items: flex-start; }
+  .ai-msg.user { flex-direction: row-reverse; }
+
+  .ai-avatar {
+    width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700;
+  }
+  .ai-avatar.bot { background: var(--verde); color: white; }
+  .ai-avatar.user { background: var(--texto); color: white; }
+
+  .ai-bubble {
+    max-width: 78%;
+    padding: 9px 12px;
+    border-radius: 10px;
+    font-size: 11px;
+    line-height: 1.6;
+    color: var(--texto);
+  }
+  .ai-msg.bot .ai-bubble { background: white; border: 1px solid var(--borde); border-bottom-left-radius: 3px; }
+  .ai-msg.user .ai-bubble { background: var(--texto); color: white; border-bottom-right-radius: 3px; }
+
+  .ai-typing { display: flex; gap: 4px; align-items: center; padding: 9px 12px; background: white; border: 1px solid var(--borde); border-radius: 10px; border-bottom-left-radius: 3px; }
+  .ai-typing span { width: 5px; height: 5px; border-radius: 50%; background: #bbb; animation: bounce .9s infinite; }
+  .ai-typing span:nth-child(2) { animation-delay: .15s; }
+  .ai-typing span:nth-child(3) { animation-delay: .3s; }
+  @keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-5px)} }
+
+  .ai-quick-btns { padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 6px; border-top: 1px solid var(--borde); background: white; }
+  .ai-quick { font-size: 10px; padding: 5px 10px; border: 1px solid var(--borde); border-radius: 20px; background: var(--gris-light); color: var(--texto); cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all .15s; }
+  .ai-quick:hover { border-color: var(--verde); color: var(--verde); background: var(--verde-light); }
+
+  .ai-input-row { display: flex; gap: 8px; padding: 10px 16px; border-top: 1px solid var(--borde); background: white; }
+  .ai-input { flex: 1; padding: 9px 12px; border: 1.5px solid var(--borde); border-radius: 8px; font-size: 12px; font-family: 'DM Sans', sans-serif; outline: none; transition: border-color .15s; background: var(--gris-light); }
+  .ai-input:focus { border-color: var(--verde); background: white; }
+  .ai-send { padding: 9px 16px; background: var(--verde); color: white; border: none; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: background .15s; white-space: nowrap; }
+  .ai-send:hover { background: var(--verde-dark); }
+  .ai-send:disabled { background: #ccc; cursor: not-allowed; }
+
+  /* INFORMES */
+  .informe-card { border: 1px solid var(--borde); border-radius: 10px; padding: 14px 16px; margin-bottom: 9px; display: flex; gap: 12px; background: white; cursor: pointer; transition: box-shadow .15s; }
+  .informe-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,.07); }
+  .informe-num { font-family: 'DM Serif Display', serif; font-size: 26px; color: var(--verde); min-width: 40px; line-height: 1; margin-top: 2px; }
+  .informe-title { font-size: 13px; font-weight: 600; color: var(--texto); margin-bottom: 2px; }
+  .informe-date { font-size: 10px; color: var(--gris); margin-bottom: 5px; }
+  .informe-text { font-size: 11px; color: var(--gris); line-height: 1.5; }
+
+  /* LACTEOS */
+  .gdt-card { background: white; border: 1px solid var(--borde); border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; }
+  .gdt-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .gdt-name { font-size: 13px; font-weight: 600; }
+  .gdt-price { font-family: 'DM Serif Display', serif; font-size: 22px; }
+  .gdt-change { font-size: 11px; font-weight: 500; }
+
+  /* MOBILE */
+  .mobile-toggle { display: none; position: fixed; top: 14px; left: 14px; z-index: 200; background: #111; color: white; border: none; width: 36px; height: 36px; border-radius: 8px; font-size: 16px; cursor: pointer; align-items: center; justify-content: center; }
+  @media(max-width:900px) {
+    .sidebar { transform: translateX(-100%); transition: transform .3s; }
+    .sidebar.open { transform: translateX(0); }
+    .main { margin-left: 0; padding: 16px; padding-top: 56px; }
+    .mobile-toggle { display: flex; }
+  }
+</style>
+</head>
+<body>
+
+<button class="mobile-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="sidebar-logo-title">Agro<span>Radar</span></div>
+    <div class="sidebar-logo-sub">Inteligencia agropecuaria · Uruguay</div>
+  </div>
+
+  <div class="sidebar-section">Mercado local</div>
+  <button class="nav-link on" id="nl-resumen" onclick="goPage('resumen')">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
+    Resumen semanal
+  </button>
+  <button class="nav-link" id="nl-precios" onclick="goPage('precios')">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/></svg>
+    Precios INAC / ACG
+  </button>
+  <button class="nav-link" id="nl-historico" onclick="window.open('historico.html')">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0 0 13 21a9 9 0 0 0 0-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
+    Histórico INAC ↗
+  </button>
+  <button class="nav-link" id="nl-ciclo" onclick="goPage('ciclo')">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+    Ciclo ganadero
+  </button>
+  <button class="nav-link" id="nl-simulador" onclick="goPage('simulador')">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 6.24 2.19c.48.38.76.97.76 1.58V19z"/></svg>
+    Simulador
+  </button>
+
+  <div class="sidebar-section">Internacional</div>
+  <button class="nav-link" id="nl-internacional" onclick="goPage('internacional')">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+    Mercados internacionales
+  </button>
+  <button class="nav-link" id="nl-lacteos" onclick="goPage('lacteos')">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.5 3H6c-1.1 0-2 .9-2 2v5.71c0 3.83 2.95 7.18 6.78 7.29 3.96.12 7.22-3.06 7.22-7v-1h.5c1.93 0 3.5-1.57 3.5-3.5S20.43 3 18.5 3zM16 5v3H6V5h10zm2.5 3H18V5h.5c.83 0 1.5.67 1.5 1.5S19.33 8 18.5 8z"/></svg>
+    Lácteos
+  </button>
+
+  <div class="sidebar-section">Contenido</div>
+  <button class="nav-link" id="nl-informes" onclick="goPage('informes')">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+    Informes semanales
+  </button>
+
+  <div class="sidebar-bottom">
+    <div class="week-info">Semana N°12 · 2026</div>
+    <button class="logout-btn" onclick="logout()">← Cerrar sesión</button>
+  </div>
+</nav>
+
+<main class="main">
+
+<!-- ══════════════════════════════════════
+     RESUMEN
+══════════════════════════════════════ -->
+<div class="page on" id="p-resumen">
+  <div class="page-header">
+    <div><div class="page-title">Resumen semanal</div><div class="page-sub">Semana N°12 · 15 al 21 de marzo de 2026</div></div>
+    <div class="week-chip">Actualizado 21/03/2026</div>
+  </div>
+  <div class="metrics">
+    <div class="mc"><div class="mc-label">Novillo gordo</div><div class="mc-value">5,20</div><div class="mc-delta dn">↓ -0,30 · cuarta balanza</div></div>
+    <div class="mc"><div class="mc-label">Vaca gorda</div><div class="mc-value">4,83</div><div class="mc-delta dn">↓ -0,33 · cuarta balanza</div></div>
+    <div class="mc"><div class="mc-label">Vaquillona</div><div class="mc-value">5,08</div><div class="mc-delta dn">↓ -0,29 · cuarta balanza</div></div>
+    <div class="mc"><div class="mc-label">Ternero hasta 140kg</div><div class="mc-value">4,22</div><div class="mc-delta dn">↓ -0,04 · reposición</div></div>
+    <div class="mc"><div class="mc-label">Novillo en pie INAC</div><div class="mc-value">3,09</div><div class="mc-delta dn">↓ -0,08 vs sem. ant.</div></div>
+    <div class="mc"><div class="mc-label">Export. móvil 30d</div><div class="mc-value">5.489</div><div class="mc-delta up">US$/ton · nivel alto</div></div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Señales de la semana</div>
+      <div class="card-sub">Semana N°12 · 2026</div>
+      <div class="signal"><div class="sig-dot" style="background:#C0392B"></div><div class="sig-text">Baja generalizada en ganado gordo — todas las categorías cayeron. Demanda retraída con faena sostenida por corrales.</div><div class="sig-badge badge-dn">Alerta</div></div>
+      <div class="signal"><div class="sig-dot" style="background:#8B6914"></div><div class="sig-text">13 de 17 categorías de reposición bajaron. El mercado muestra disparidad en valores según calidad del animal.</div><div class="sig-badge badge-wa">Seguir</div></div>
+      <div class="signal"><div class="sig-dot" style="background:#1D9E75"></div><div class="sig-text">Precio móvil 30d de exportación se mantiene en US$5.489/ton — soporte estructural firme. La baja puede ser transitoria.</div><div class="sig-badge badge-up">Positivo</div></div>
+      <div class="signal"><div class="sig-dot" style="background:#1D9E75"></div><div class="sig-text">Live Cattle en EE.UU. en máximos históricos. Rodeo americano en mínimos de 60 años — soporte de largo plazo.</div><div class="sig-badge badge-up">Soporte</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Fase del ciclo ganadero</div>
+      <div class="card-sub">Uruguay · Marzo 2026</div>
+      <div style="display:flex;gap:5px;margin-bottom:8px;">
+        <div style="flex:1;height:5px;border-radius:3px;background:#e0e0d8;"></div>
+        <div style="flex:1;height:5px;border-radius:3px;background:#e0e0d8;"></div>
+        <div style="flex:1;height:5px;border-radius:3px;background:#1D9E75;"></div>
+        <div style="flex:1;height:5px;border-radius:3px;background:#e0e0d8;"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:8px;color:#bbb;margin-bottom:12px;">
+        <span>Liquidación</span><span>Transición</span><span style="color:#1D9E75;font-weight:700;">Retención ●</span><span>Saturación</span>
+      </div>
+      <div style="font-size:11px;color:#555;line-height:1.6;margin-bottom:10px;">Uruguay lleva 18 meses en fase de retención. Precios en máximos históricos. Extracción 2025: 25% del rodeo (normal: 21-22%). El techo del ciclo se proyecta a 12-18 meses vista.</div>
+      <div style="padding:9px 11px;background:#fdf5e0;border-radius:7px;border-left:3px solid #8B6914;font-size:10px;color:#5a3c00;line-height:1.5;"><strong>Señal de atención:</strong> La baja de esta semana puede ser transitoria (corrales sosteniendo la faena). Monitorear las próximas 3-4 semanas para confirmar si es inicio de tendencia.</div>
+    </div>
+  </div>
+
+  <!-- ASISTENTE RESUMEN -->
+  <div class="ai-panel">
+    <div class="ai-header">
+      <div class="ai-dot"></div>
+      <div class="ai-title">Asistente AgroRadar</div>
+      <div class="ai-subtitle">Consultá sobre el mercado de esta semana</div>
+    </div>
+    <div class="ai-messages" id="msgs-resumen">
+      <div class="ai-msg bot">
+        <div class="ai-avatar bot">AR</div>
+        <div class="ai-bubble">Hola. Estoy al tanto del mercado de la semana 12/2026: baja generalizada en gordo (novillo -5,5%, vaca -6,4%), 13/17 categorías de reposición a la baja, pero el precio de exportación se mantiene fuerte en US$5.489/ton. ¿Qué querés analizar?</div>
+      </div>
+    </div>
+    <div class="ai-quick-btns">
+      <button class="ai-quick" onclick="sendQuick('resumen','¿La baja de esta semana es una corrección transitoria o el inicio de una tendencia bajista?')">¿Corrección o tendencia?</button>
+      <button class="ai-quick" onclick="sendQuick('resumen','Tengo terneros para vender, ¿conviene vender ahora o esperar?')">¿Vendo o espero?</button>
+      <button class="ai-quick" onclick="sendQuick('resumen','¿Cómo está el ciclo ganadero uruguayo y cuándo esperás que cambien los precios?')">Estado del ciclo</button>
+      <button class="ai-quick" onclick="sendQuick('resumen','¿Qué está pasando en el mercado internacional que puede afectar los precios uruguayos?')">Contexto internacional</button>
+    </div>
+    <div class="ai-input-row">
+      <input class="ai-input" id="inp-resumen" placeholder="Hacé tu pregunta sobre el mercado..." onkeydown="if(event.key==='Enter')sendMsg('resumen')">
+      <button class="ai-send" id="btn-resumen" onclick="sendMsg('resumen')">Enviar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     PRECIOS
+══════════════════════════════════════ -->
+<div class="page" id="p-precios">
+  <div class="page-header">
+    <div><div class="page-title">Precios INAC / ACG</div><div class="page-sub">Hacienda gorda y reposición · Semana N°12 · 2026</div></div>
+    <div class="week-chip">Semana 12 · ACG + INAC</div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Ganado gordo — ACG</div>
+      <div class="card-sub">US$/kg cuarta balanza · Precio pagado por frigoríficos</div>
+      <table class="ptable">
+        <thead><tr><th>Categoría</th><th>Sem. 11</th><th>Sem. 12</th><th>Var.</th></tr></thead>
+        <tbody>
+          <tr><td class="cat">Novillo</td><td>5,50</td><td><strong>5,20</strong></td><td class="dn">↓ -0,30</td></tr>
+          <tr><td class="cat">Vaca</td><td>5,16</td><td><strong>4,83</strong></td><td class="dn">↓ -0,33</td></tr>
+          <tr><td class="cat">Vaquillona</td><td>5,37</td><td><strong>5,08</strong></td><td class="dn">↓ -0,29</td></tr>
+          <tr><td class="cat">Export. móvil 30d <span class="unit">US$/ton</span></td><td>—</td><td><strong>5.489</strong></td><td class="up">Alto</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-title">Hacienda gorda — INAC</div>
+      <div class="card-sub">US$/kg en pie · Contado puesto en frigorífico</div>
+      <table class="ptable">
+        <thead><tr><th>Categoría</th><th>En pie</th><th>Cuarta bal.</th><th>Var. sem.</th></tr></thead>
+        <tbody>
+          <tr><td class="cat">Novillo <span class="unit">+380kg</span></td><td>3,092</td><td>5,657</td><td class="dn">↓ -0,079</td></tr>
+          <tr><td class="cat">Vaca <span class="unit">+370kg</span></td><td>2,636</td><td>5,272</td><td class="dn">↓ -0,055</td></tr>
+          <tr><td class="cat">Vaquillona</td><td>3,022</td><td>5,578</td><td class="dn">↓ -0,041</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Reposición completa — ACG</div>
+    <div class="card-sub">US$/kg vivo · Semana N°12 vs. semana anterior · HQB = negocios a 90 días</div>
+    <table class="ptable">
+      <thead><tr><th>Categoría</th><th>Mín</th><th>Máx</th><th>Prom</th><th>Sem. ant.</th><th>Var.</th></tr></thead>
+      <tbody>
+        <tr><td class="cat">Terneros hasta 140kg</td><td>4,10</td><td>4,40</td><td><strong>4,22</strong></td><td>4,26</td><td class="dn">↓ -0,04</td></tr>
+        <tr><td class="cat">Terneros 141–180kg</td><td>3,85</td><td>4,20</td><td><strong>4,00</strong></td><td>4,02</td><td class="dn">↓ -0,02</td></tr>
+        <tr><td class="cat">Terneros más 180kg</td><td>3,70</td><td>4,00</td><td><strong>3,85</strong></td><td>3,88</td><td class="dn">↓ -0,03</td></tr>
+        <tr><td class="cat">Terneros exportación</td><td>3,50</td><td>3,95</td><td><strong>3,75</strong></td><td>3,73</td><td class="up">↑ +0,02</td></tr>
+        <tr><td class="cat">Novillitos 201–240kg</td><td>3,35</td><td>3,60</td><td><strong>3,45</strong></td><td>3,57</td><td class="dn">↓ -0,12</td></tr>
+        <tr><td class="cat">Novillos 241–300kg</td><td>3,30</td><td>3,50</td><td><strong>3,38</strong></td><td>3,45</td><td class="dn">↓ -0,07</td></tr>
+        <tr><td class="cat">Novillos 301–360kg</td><td>3,20</td><td>3,30</td><td><strong>3,25</strong></td><td>3,33</td><td class="dn">↓ -0,08</td></tr>
+        <tr><td class="cat">Novillos más 360kg</td><td>3,00</td><td>3,10</td><td><strong>3,06</strong></td><td>3,15</td><td class="dn">↓ -0,09</td></tr>
+        <tr><td class="cat">Novillos HQB 481</td><td>3,00</td><td>3,20</td><td><strong>3,11</strong></td><td>3,20</td><td class="dn">↓ -0,09</td></tr>
+        <tr><td class="cat">Terneras hasta 140kg</td><td>3,60</td><td>3,75</td><td><strong>3,67</strong></td><td>3,78</td><td class="dn">↓ -0,11</td></tr>
+        <tr><td class="cat">Terneras 141–200kg</td><td>3,35</td><td>3,50</td><td><strong>3,43</strong></td><td>3,52</td><td class="dn">↓ -0,09</td></tr>
+        <tr><td class="cat">Vaquillonas 201–240kg</td><td>3,00</td><td>3,10</td><td><strong>3,07</strong></td><td>3,10</td><td class="dn">↓ -0,03</td></tr>
+        <tr><td class="cat">Vaquillonas más 240kg</td><td>2,70</td><td>3,15</td><td><strong>2,96</strong></td><td>3,09</td><td class="dn">↓ -0,13</td></tr>
+        <tr><td class="cat">Vaquillonas HQB 481</td><td>2,90</td><td>2,95</td><td><strong>2,93</strong></td><td>—</td><td class="up">↑ Nueva</td></tr>
+        <tr><td class="cat">Vaq. y Vacas Preñadas <span class="unit">US$/cab</span></td><td>1.000</td><td>1.100</td><td><strong>1.060</strong></td><td>1.148</td><td class="dn">↓ -88</td></tr>
+        <tr><td class="cat">Vacas de Invernada</td><td>2,20</td><td>2,40</td><td><strong>2,30</strong></td><td>2,35</td><td class="dn">↓ -0,05</td></tr>
+        <tr><td class="cat">Piezas de Cría <span class="unit">US$/cab</span></td><td>560</td><td>800</td><td><strong>649</strong></td><td>641</td><td class="up">↑ +8</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="ai-panel">
+    <div class="ai-header"><div class="ai-dot"></div><div class="ai-title">Asistente AgroRadar</div><div class="ai-subtitle">Analizá los precios con el bot</div></div>
+    <div class="ai-messages" id="msgs-precios">
+      <div class="ai-msg bot"><div class="ai-avatar bot">AR</div><div class="ai-bubble">Tengo cargados todos los precios de la semana 12. Novillo gordo a US$5,20/kg carcasa, ternero hasta 140kg a US$4,22/kg vivo. ¿Qué querés analizar?</div></div>
+    </div>
+    <div class="ai-quick-btns">
+      <button class="ai-quick" onclick="sendQuick('precios','¿Conviene comprar terneros de 160kg para invernar con los precios actuales de la semana 12?')">¿Conviene comprar terneros ahora?</button>
+      <button class="ai-quick" onclick="sendQuick('precios','Explicame la diferencia entre precio en pie, cuarta balanza y precio de reposición. ¿Cuál debo mirar para cada decisión?')">¿Qué precio mirar según la decisión?</button>
+      <button class="ai-quick" onclick="sendQuick('precios','¿La relación entre el precio del ternero y el novillo gordo esta semana es favorable para el invernador?')">Relación ternero/gordo</button>
+    </div>
+    <div class="ai-input-row">
+      <input class="ai-input" id="inp-precios" placeholder="Preguntá sobre los precios..." onkeydown="if(event.key==='Enter')sendMsg('precios')">
+      <button class="ai-send" id="btn-precios" onclick="sendMsg('precios')">Enviar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     CICLO GANADERO
+══════════════════════════════════════ -->
+<div class="page" id="p-ciclo">
+  <div class="page-header">
+    <div><div class="page-title">Ciclo ganadero</div><div class="page-sub">Análisis de fase, indicadores y señales de cambio</div></div>
+  </div>
+  <div class="metrics">
+    <div class="mc"><div class="mc-label">Fase actual</div><div class="mc-value" style="font-size:17px;color:#1D9E75;">Retención</div><div class="mc-delta neu">Fase 3 de 4</div></div>
+    <div class="mc"><div class="mc-label">Extracción 2025</div><div class="mc-value">25%</div><div class="mc-delta dn">Normal: 21-22%</div></div>
+    <div class="mc"><div class="mc-label">Faena 2025</div><div class="mc-value">2,4M</div><div class="mc-delta up">3er mayor en 25 años</div></div>
+    <div class="mc"><div class="mc-label">Novillo máx. histórico</div><div class="mc-value">$3,17</div><div class="mc-delta up">Semana 14/03/26</div></div>
+    <div class="mc"><div class="mc-label">Techo proyectado</div><div class="mc-value" style="font-size:17px;">12–18m</div><div class="mc-delta wa">Plazo estimado</div></div>
+  </div>
+
+  <div class="grid2">
+    <div>
+      <div class="card">
+        <div class="card-title">¿Qué es el ciclo ganadero?</div>
+        <div class="card-sub">El patrón que se repite cada 8-12 años en Uruguay</div>
+        <div style="font-size:11px;color:#555;line-height:1.7;">El ciclo ganadero es el movimiento pendular de precios que ocurre porque los productores reaccionan todos al mismo tiempo. Cuando los precios son bajos, todos venden y la oferta aumenta aún más. Cuando suben, todos retienen y la oferta cae. Esta reacción colectiva genera ciclos predecibles de 8 a 12 años.<br><br>La clave para el productor es identificar en qué fase está el ciclo <strong>antes</strong> que la mayoría lo note — eso define si comprás o vendés reposición, si engordás o liquidás, si invertís en pasturas o esperás.</div>
+      </div>
+      <div class="card" style="margin-top:0;">
+        <div class="card-title">Los 4 indicadores que no podés perder de vista</div>
+        <div class="card-sub">Señales que anticipan el cambio de fase</div>
+        <table class="ptable">
+          <thead><tr><th>Indicador</th><th>Actual</th><th>Señal</th></tr></thead>
+          <tbody>
+            <tr><td>Precio novillo en pie</td><td>$3,09/kg</td><td class="up">Máx. histórico</td></tr>
+            <tr><td>Relación ternero/gordo</td><td>137%</td><td class="dn">Ajustado</td></tr>
+            <tr><td>Precio export. 30d</td><td>$5.489/ton</td><td class="up">Alto</td></tr>
+            <tr><td>Live Cattle EE.UU.</td><td>Máx. hist.</td><td class="up">Soporte</td></tr>
+            <tr><td>Bajas consecutivas</td><td>1 semana</td><td class="wa">Monitorear</td></tr>
+            <tr><td>Faena de hembras</td><td>Normal</td><td class="up">Sin alerta</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <div class="card-title">Las 4 fases — qué hacer en cada una</div>
+        <div class="card-sub">Guía práctica para el productor</div>
+        <div class="signal"><div class="sig-dot" style="background:#C0392B"></div><div class="sig-text"><strong>Fase 1 — Liquidación:</strong> Precios bajos, todos venden, alta faena de hembras. Los productores más asustados liquidan todo. <em>Lo que conviene:</em> comprar reposición barata si tenés capital. Es el mejor momento de entrada al negocio.</div></div>
+        <div class="signal" style="background:#fdf5e0;"><div class="sig-dot" style="background:#8B6914"></div><div class="sig-text"><strong>Fase 2 — Transición:</strong> Precios mejoran lentamente. La mayoría todavía no lo nota. Oferta empieza a reducirse porque se faenan menos hembras. <em>Lo que conviene:</em> invertir fuerte en reposición antes de que suba. Es el momento de mayor oportunidad.</div></div>
+        <div class="signal" style="background:#e8f7f2;"><div class="sig-dot" style="background:#1D9E75"></div><div class="sig-text"><strong>Fase 3 — Retención ← estamos acá:</strong> Precios altos, todos retienen, faena sostenida por corrales. El margen de invernada se ajusta porque el ternero está caro relativo al gordo. <em>Lo que conviene:</em> ser selectivo en la compra. Foco en eficiencia, no en volumen.</div><div class="sig-badge badge-up">Actual</div></div>
+        <div class="signal"><div class="sig-dot" style="background:#888"></div><div class="sig-text"><strong>Fase 4 — Saturación:</strong> Exceso de oferta, precios caen. <em>Señales que lo anuncian:</em> baja sostenida 4+ semanas, aumento de faena de hembras jóvenes, rodeo en máximos. <em>Lo que conviene:</em> reducir stock, no comprar reposición cara.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ai-panel">
+    <div class="ai-header"><div class="ai-dot"></div><div class="ai-title">Asistente AgroRadar</div><div class="ai-subtitle">Intercambiá opiniones sobre el ciclo</div></div>
+    <div class="ai-messages" id="msgs-ciclo">
+      <div class="ai-msg bot"><div class="ai-avatar bot">AR</div><div class="ai-bubble">Uruguay está en Fase 3 (Retención) hace 18 meses. Los precios están en máximos históricos pero la relación ternero/gordo se ajustó al 137%. ¿Qué te genera más dudas sobre el ciclo actual?</div></div>
+    </div>
+    <div class="ai-quick-btns">
+      <button class="ai-quick" onclick="sendQuick('ciclo','¿Cuándo esperás que Uruguay pase a la Fase 4 de saturación? ¿Qué señal lo va a confirmar primero?')">¿Cuándo viene la Fase 4?</button>
+      <button class="ai-quick" onclick="sendQuick('ciclo','¿Vale la pena comprar campo o aumentar el rodeo en este momento del ciclo?')">¿Compro campo o espero?</button>
+      <button class="ai-quick" onclick="sendQuick('ciclo','¿La baja de precios de esta semana es una señal de cambio de fase o es ruido de corto plazo?')">¿Cambio de fase o ruido?</button>
+      <button class="ai-quick" onclick="sendQuick('ciclo','Explicame cómo el ciclo ganadero de EE.UU. afecta el ciclo uruguayo')">Ciclo EE.UU. vs. Uruguay</button>
+    </div>
+    <div class="ai-input-row">
+      <input class="ai-input" id="inp-ciclo" placeholder="Compartí tu opinión o hacé una pregunta..." onkeydown="if(event.key==='Enter')sendMsg('ciclo')">
+      <button class="ai-send" id="btn-ciclo" onclick="sendMsg('ciclo')">Enviar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SIMULADOR
+══════════════════════════════════════ -->
+<div class="page" id="p-simulador">
+  <div class="page-header">
+    <div><div class="page-title">Simulador</div><div class="page-sub">Calculá márgenes de invernada, cría y recría</div></div>
+  </div>
+  <div class="tab-row">
+    <button class="tab-btn on" onclick="goSimTab('invernada',this)">Invernada</button>
+    <button class="tab-btn" onclick="goSimTab('cria',this)">Cría</button>
+    <button class="tab-btn" onclick="goSimTab('recria',this)">Recría</button>
+  </div>
+
+  <!-- INVERNADA -->
+  <div class="sim-tab on" id="st-invernada">
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">Parámetros de compra y venta</div>
+        <div class="card-sub">Ingresá los datos de tu negocio</div>
+        <div class="sim-field"><div class="sim-label">Peso de compra (kg vivo)</div><input class="sim-input" type="number" id="inv-pc" value="160" onchange="calcInv()"></div>
+        <div class="sim-field"><div class="sim-label">Precio de compra reposición (US$/kg vivo)</div><input class="sim-input" type="number" step="0.01" id="inv-ppc" value="4.00" onchange="calcInv()"></div>
+        <div class="sim-field"><div class="sim-label">Peso de venta esperado (kg vivo)</div><input class="sim-input" type="number" id="inv-pv" value="430" onchange="calcInv()"></div>
+        <div class="sim-field"><div class="sim-label">Precio de venta estimado (US$/kg en pie)</div><input class="sim-input" type="number" step="0.01" id="inv-ppv" value="3.09" onchange="calcInv()"></div>
+        <div class="sim-field"><div class="sim-label">Días de invernada</div><input class="sim-input" type="number" id="inv-dias" value="270" onchange="calcInv()"></div>
+        <div class="sim-field"><div class="sim-label">Costo operativo (US$/animal/mes)</div><input class="sim-input" type="number" step="0.5" id="inv-cop" value="8" onchange="calcInv()"></div>
+        <div class="sim-field"><div class="sim-label">Costo de suplementación (US$/animal/mes)</div><input class="sim-input" type="number" step="0.5" id="inv-sup" value="0" onchange="calcInv()"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Resultado del negocio</div>
+        <div class="card-sub">Actualizado automáticamente</div>
+        <div class="sim-result">
+          <div class="sim-row"><span>Costo de compra</span><span id="inv-r1">—</span></div>
+          <div class="sim-row"><span>Ganancia de peso</span><span id="inv-r2">—</span></div>
+          <div class="sim-row"><span>GDP estimado</span><span id="inv-r3">—</span></div>
+          <div class="sim-row"><span>Costo operativo total</span><span id="inv-r4">—</span></div>
+          <div class="sim-row"><span>Costo suplementación total</span><span id="inv-r5">—</span></div>
+          <div class="sim-row"><span>Ingreso por venta</span><span id="inv-r6">—</span></div>
+          <div class="sim-row"><span>Margen bruto</span><span id="inv-r7">—</span></div>
+          <div class="sim-row"><span>ROI sobre inversión</span><span id="inv-r8">—</span></div>
+          <div class="sim-row"><span><strong>Resultado por animal</strong></span><span id="inv-r9"><strong>—</strong></span></div>
+        </div>
+        <div class="sim-veredicto" id="inv-verd"></div>
+        <div style="margin-top:10px;font-size:10px;color:#aaa;line-height:1.5;">* Costo operativo incluye pasturas, sanidad y gastos generales. No incluye arrendamiento ni mano de obra proporcional.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CRÍA -->
+  <div class="sim-tab" id="st-cria">
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">Parámetros del rodeo de cría</div>
+        <div class="card-sub">Ingresá los datos de tu operación</div>
+        <div class="sim-field"><div class="sim-label">Número de vacas en el rodeo</div><input class="sim-input" type="number" id="cr-vacas" value="100" onchange="calcCria()"></div>
+        <div class="sim-field"><div class="sim-label">Porcentaje de preñez (%)</div><input class="sim-input" type="number" id="cr-prenez" value="78" onchange="calcCria()"></div>
+        <div class="sim-field"><div class="sim-label">Porcentaje de destete (%)</div><input class="sim-input" type="number" id="cr-destete" value="72" onchange="calcCria()"></div>
+        <div class="sim-field"><div class="sim-label">Precio de venta ternero (US$/kg)</div><input class="sim-input" type="number" step="0.01" id="cr-ptern" value="4.22" onchange="calcCria()"></div>
+        <div class="sim-field"><div class="sim-label">Peso de venta ternero (kg)</div><input class="sim-input" type="number" id="cr-pesotern" value="160" onchange="calcCria()"></div>
+        <div class="sim-field"><div class="sim-label">Costo operativo total anual (US$)</div><input class="sim-input" type="number" id="cr-cop" value="12000" onchange="calcCria()"></div>
+        <div class="sim-field"><div class="sim-label">Valor del rodeo de vacas (US$/cab)</div><input class="sim-input" type="number" id="cr-vvaca" value="900" onchange="calcCria()"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Resultado del sistema de cría</div>
+        <div class="card-sub">Actualizado automáticamente</div>
+        <div class="sim-result">
+          <div class="sim-row"><span>Terneros destetados</span><span id="cr-r1">—</span></div>
+          <div class="sim-row"><span>Ingreso por terneros</span><span id="cr-r2">—</span></div>
+          <div class="sim-row"><span>Costo operativo total</span><span id="cr-r3">—</span></div>
+          <div class="sim-row"><span>Margen bruto</span><span id="cr-r4">—</span></div>
+          <div class="sim-row"><span>Margen por vaca</span><span id="cr-r5">—</span></div>
+          <div class="sim-row"><span>ROI sobre rodeo</span><span id="cr-r6">—</span></div>
+          <div class="sim-row"><span><strong>Ingreso neto anual</strong></span><span id="cr-r7"><strong>—</strong></span></div>
+        </div>
+        <div class="sim-veredicto" id="cr-verd"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RECRÍA -->
+  <div class="sim-tab" id="st-recria">
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">Parámetros de recría</div>
+        <div class="card-sub">De ternero a novillo de reposición</div>
+        <div class="sim-field"><div class="sim-label">Peso de entrada (kg)</div><input class="sim-input" type="number" id="rec-pe" value="160" onchange="calcRecria()"></div>
+        <div class="sim-field"><div class="sim-label">Precio de compra (US$/kg)</div><input class="sim-input" type="number" step="0.01" id="rec-ppc" value="4.22" onchange="calcRecria()"></div>
+        <div class="sim-field"><div class="sim-label">Peso de salida (kg)</div><input class="sim-input" type="number" id="rec-ps" value="280" onchange="calcRecria()"></div>
+        <div class="sim-field"><div class="sim-label">Precio de venta (US$/kg)</div><input class="sim-input" type="number" step="0.01" id="rec-ppv" value="3.45" onchange="calcRecria()"></div>
+        <div class="sim-field"><div class="sim-label">Días de recría</div><input class="sim-input" type="number" id="rec-dias" value="180" onchange="calcRecria()"></div>
+        <div class="sim-field"><div class="sim-label">Costo operativo (US$/animal/mes)</div><input class="sim-input" type="number" step="0.5" id="rec-cop" value="6" onchange="calcRecria()"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Resultado de la recría</div>
+        <div class="card-sub">Actualizado automáticamente</div>
+        <div class="sim-result">
+          <div class="sim-row"><span>Inversión inicial</span><span id="rec-r1">—</span></div>
+          <div class="sim-row"><span>Ganancia de peso</span><span id="rec-r2">—</span></div>
+          <div class="sim-row"><span>GDP diario</span><span id="rec-r3">—</span></div>
+          <div class="sim-row"><span>Costo operativo total</span><span id="rec-r4">—</span></div>
+          <div class="sim-row"><span>Ingreso por venta</span><span id="rec-r5">—</span></div>
+          <div class="sim-row"><span>Margen bruto</span><span id="rec-r6">—</span></div>
+          <div class="sim-row"><span><strong>Resultado por animal</strong></span><span id="rec-r7"><strong>—</strong></span></div>
+        </div>
+        <div class="sim-veredicto" id="rec-verd"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ai-panel">
+    <div class="ai-header"><div class="ai-dot"></div><div class="ai-title">Asistente AgroRadar</div><div class="ai-subtitle">Analizá tu negocio con el bot</div></div>
+    <div class="ai-messages" id="msgs-simulador">
+      <div class="ai-msg bot"><div class="ai-avatar bot">AR</div><div class="ai-bubble">Podés ingresar los datos de tu negocio en el simulador y preguntarme cómo interpretar los resultados, qué precio de venta necesitás para que sea viable, o cómo mejorar el margen. ¿Con qué sistema trabajás — invernada, cría o recría?</div></div>
+    </div>
+    <div class="ai-quick-btns">
+      <button class="ai-quick" onclick="sendQuick('simulador','¿Qué GDP (ganancia diaria de peso) es realista en pastoreo en Lavalleja sin suplementación?')">¿Qué GDP esperar en campo?</button>
+      <button class="ai-quick" onclick="sendQuick('simulador','¿Cuál es el precio mínimo de venta que necesito para que la invernada sea viable con un ternero de 160kg a US$4,00/kg?')">¿Precio mínimo de venta?</button>
+      <button class="ai-quick" onclick="sendQuick('simulador','¿Conviene más hacer cría o invernada con los precios actuales de la semana 12/2026?')">¿Cría vs. invernada ahora?</button>
+    </div>
+    <div class="ai-input-row">
+      <input class="ai-input" id="inp-simulador" placeholder="Preguntá sobre tu negocio..." onkeydown="if(event.key==='Enter')sendMsg('simulador')">
+      <button class="ai-send" id="btn-simulador" onclick="sendMsg('simulador')">Enviar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     INTERNACIONAL
+══════════════════════════════════════ -->
+<div class="page" id="p-internacional">
+  <div class="page-header">
+    <div><div class="page-title">Mercados internacionales</div><div class="page-sub">Cómo leer cada indicador y qué significa para Uruguay</div></div>
+  </div>
+
+  <div style="background:#fffbf0;border:1px solid #fde8a0;border-radius:9px;padding:11px 14px;margin-bottom:18px;font-size:11px;color:#7a5c00;line-height:1.6;">
+    <strong>Cómo usar esta sección:</strong> cada indicador tiene una explicación de qué es, por qué importa para Uruguay, y qué señal da cuando sube o baja. Hacé clic en "Ver gráfico" para abrir en TradingView en tiempo real. Los gráficos están en vista semanal para análisis de tendencia.
+  </div>
+
+  <div style="font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.08em;margin:0 0 10px;">Granos Chicago (CBOT)</div>
+
+  <div class="market-card">
+    <div class="market-card-top">
+      <div class="market-card-header">
+        <div><div class="market-name">Maíz</div><div class="market-sym">CBOT:ZC1! · Futuros continuos · Cotiza en centavos/bushel</div></div>
+        <div class="tv-badge imp-up">Feedlot · Suplementación</div>
+      </div>
+      <div class="market-desc">El maíz es el insumo principal del feedlot y de la suplementación a campo. En Uruguay se importa principalmente de Argentina y Brasil para los corrales del litoral. Su precio define directamente el costo de producir un kilogramo de carne vía suplementación o confinamiento.</div>
+      <div class="signal-grid">
+        <div class="signal-box green"><div class="signal-box-title">↓ Cuando baja...</div><div class="signal-box-text">El costo del feedlot cae. Los corrales se vuelven más rentables. Aumenta la demanda de terneros para engordar. El precio de reposición liviana sube en 2-3 meses. Conviene comprar terneros para suplementar.</div></div>
+        <div class="signal-box red"><div class="signal-box-title">↑ Cuando sube...</div><div class="signal-box-text">El costo del corral aumenta. Los feedlots reducen compras o cierran. La demanda de terneros cae. El margen de invernada a corral se comprime. Hay que revisar si la suplementación sigue siendo rentable.</div></div>
+      </div>
+    </div>
+    <div class="market-card-bottom">
+      <div class="market-conversion">c/bu ÷ 25,4 × 100 = US$/ton &nbsp;|&nbsp; Ej: 440 c/bu ≈ US$173/ton</div>
+      <a href="https://www.tradingview.com/chart/?symbol=CBOT%3AZC1!&interval=W" target="_blank">Ver gráfico en TradingView ↗</a>
+    </div>
+  </div>
+
+  <div class="market-card">
+    <div class="market-card-top">
+      <div class="market-card-header">
+        <div><div class="market-name">Soja</div><div class="market-sym">CBOT:ZS1! · Futuros continuos · Cotiza en centavos/bushel</div></div>
+        <div class="tv-badge imp-dn">Arrendamientos · Competencia por tierra</div>
+      </div>
+      <div class="market-desc">La soja es el principal cultivo del agricultor que arrienda campo en Uruguay. Su precio define el margen de la agricultura y cuánto puede pagar de arrendamiento. Como el ganadero compite por la misma tierra que el agricultor, el precio de la soja afecta indirectamente el costo del campo ganadero.</div>
+      <div class="signal-grid">
+        <div class="signal-box green"><div class="signal-box-title">↓ Cuando baja...</div><div class="signal-box-text">El margen agrícola cae. Los agricultores pagan menos de arrendamiento o devuelven campos. El ganadero puede recuperar campos o arrendarlos más barato. Presión bajista en valores de tierra.</div></div>
+        <div class="signal-box red"><div class="signal-box-title">↑ Cuando sube...</div><div class="signal-box-text">La agricultura es más rentable. Los agricultores pagan más por el campo. El ganadero pierde tierra frente al agricultor. Los arrendamientos suben. Competencia por lotes agrícolas se intensifica.</div></div>
+      </div>
+    </div>
+    <div class="market-card-bottom">
+      <div class="market-conversion">c/bu ÷ 27,2 × 100 = US$/ton &nbsp;|&nbsp; Ej: 980 c/bu ≈ US$360/ton</div>
+      <a href="https://www.tradingview.com/chart/?symbol=CBOT%3AZS1!&interval=W" target="_blank">Ver gráfico en TradingView ↗</a>
+    </div>
+  </div>
+
+  <div class="market-card">
+    <div class="market-card-top">
+      <div class="market-card-header">
+        <div><div class="market-name">Trigo</div><div class="market-sym">CBOT:ZW1! · Futuros continuos · Cotiza en centavos/bushel</div></div>
+        <div class="tv-badge imp-neu">Cultivos invierno · Referencia regional</div>
+      </div>
+      <div class="market-desc">El trigo es el principal cultivo de invierno en Uruguay junto con la cebada. Define el margen de los planteos doble cultivo (trigo/soja de segunda) que son muy comunes en el litoral uruguayo. También es referencia para el mercado de granos forrajeros usados en alimentación animal.</div>
+      <div class="signal-grid">
+        <div class="signal-box green"><div class="signal-box-title">↓ Cuando baja...</div><div class="signal-box-text">El planteo de doble cultivo pierde atractivo. Algunos campos de invierno vuelven a uso ganadero. Menor competencia por pasturas de invierno.</div></div>
+        <div class="signal-box red"><div class="signal-box-title">↑ Cuando sube...</div><div class="signal-box-text">El doble cultivo es más rentable. Mayor ocupación de campos agrícolas en invierno. El ganadero pierde superficie de pastoreo invernal frente a los cultivos.</div></div>
+      </div>
+    </div>
+    <div class="market-card-bottom">
+      <div class="market-conversion">c/bu ÷ 27,2 × 100 = US$/ton &nbsp;|&nbsp; Ej: 530 c/bu ≈ US$195/ton</div>
+      <a href="https://www.tradingview.com/chart/?symbol=CBOT%3AZW1!&interval=W" target="_blank">Ver gráfico en TradingView ↗</a>
+    </div>
+  </div>
+
+  <div style="font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.08em;margin:18px 0 10px;">Ganado (CME Chicago)</div>
+
+  <div class="market-card">
+    <div class="market-card-top">
+      <div class="market-card-header">
+        <div><div class="market-name">Live Cattle</div><div class="market-sym">CME:LE1! · Futuros continuos · Cotiza en centavos/libra</div></div>
+        <div class="tv-badge imp-up">EE.UU. = 28% de las exportaciones uruguayas</div>
+      </div>
+      <div class="market-desc">El Live Cattle es el precio del novillo gordo en EE.UU. Es el indicador más importante para Uruguay porque EE.UU. es el principal destino de la carne uruguaya por volumen (28%). Cuando el precio en EE.UU. sube, los frigoríficos americanos tienen mayor margen y pueden pagar más por carne importada uruguaya. El rodeo americano está actualmente en mínimos de 60 años, lo que genera un soporte estructural de demanda que puede durar 3-5 años más.</div>
+      <div class="signal-grid">
+        <div class="signal-box green"><div class="signal-box-title">↑ Cuando sube...</div><div class="signal-box-text">Mayor demanda de carne en EE.UU. Los frigoríficos americanos pagan más por tonelada importada. Los frigoríficos uruguayos reciben mejores precios → trasladan parte al productor. El precio del novillo gordo uruguayo recibe soporte.</div></div>
+        <div class="signal-box red"><div class="signal-box-title">↓ Cuando baja...</div><div class="signal-box-text">Menor demanda americana. Los frigoríficos uruguayos reciben menos por su carne exportada. El soporte de precio al productor se debilita. Puede anticipar una baja en los precios del INAC en 2-4 semanas.</div></div>
+      </div>
+    </div>
+    <div class="market-card-bottom">
+      <div class="market-conversion">c/lb ÷ 100 × 2,205 = US$/kg &nbsp;|&nbsp; Ej: 200 c/lb = US$4,41/kg</div>
+      <a href="https://www.tradingview.com/chart/?symbol=CME%3ALE1!&interval=W" target="_blank">Ver gráfico en TradingView ↗</a>
+    </div>
+  </div>
+
+  <div class="market-card">
+    <div class="market-card-top">
+      <div class="market-card-header">
+        <div><div class="market-name">Feeder Cattle</div><div class="market-sym">CME:GF1! · Futuros continuos · Cotiza en centavos/libra</div></div>
+        <div class="tv-badge imp-neu">Reposición EE.UU. · Ciclo americano</div>
+      </div>
+      <div class="market-desc">El Feeder Cattle es el precio del novillo joven (reposición) en EE.UU. La relación entre Feeder Cattle y Live Cattle es exactamente análoga a la relación ternero/gordo en Uruguay. Cuando el Feeder sube más que el Live, el margen del feedlot americano se comprime — igual que acá cuando el ternero sube más que el gordo. También indica las expectativas del mercado sobre los precios futuros del gordo.</div>
+      <div class="signal-grid">
+        <div class="signal-box green"><div class="signal-box-title">Relación Feeder/Live baja...</div><div class="signal-box-text">El margen del feedlot americano mejora. Mayor demanda de animales jóvenes para engordar. Señal de que los feedlots esperan que el gordo siga subiendo. Positivo para la demanda de carne en general.</div></div>
+        <div class="signal-box red"><div class="signal-box-title">Relación Feeder/Live sube...</div><div class="signal-box-text">El margen del feedlot se comprime. Los corrales son menos rentables. Pueden reducir compras de reposición. Señal de que el mercado descuenta precios más bajos del gordo en el futuro.</div></div>
+      </div>
+    </div>
+    <div class="market-card-bottom">
+      <div class="market-conversion">c/lb ÷ 100 × 2,205 = US$/kg &nbsp;|&nbsp; Ej: 260 c/lb = US$5,73/kg</div>
+      <a href="https://www.tradingview.com/chart/?symbol=CME%3AGF1!&interval=W" target="_blank">Ver gráfico en TradingView ↗</a>
+    </div>
+  </div>
+
+  <div style="font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.08em;margin:18px 0 10px;">Divisas</div>
+
+  <div class="market-card">
+    <div class="market-card-top">
+      <div class="market-card-header">
+        <div><div class="market-name">EUR / USD</div><div class="market-sym">FX:EURUSD · Spot · Tiempo real</div></div>
+        <div class="tv-badge imp-up">UE = 17% exportaciones · Mayor precio/ton</div>
+      </div>
+      <div class="market-desc">Europa es el mercado que paga el precio más alto por tonelada de carne uruguaya, especialmente la Cuota Hilton (481) y los cortes premium. La carne uruguaya se factura en dólares americanos. Cuando el euro se fortalece frente al dólar, la carne uruguaya les sale más barata a los compradores europeos en términos de euros — aumenta la demanda y los precios mejoran.</div>
+      <div class="signal-grid">
+        <div class="signal-box green"><div class="signal-box-title">↑ Euro fuerte (sube EUR/USD)</div><div class="signal-box-text">La carne uruguaya en USD es más barata para compradores europeos. Mayor demanda de cortes premium. Mejor precio por la Cuota Hilton. Positivo para exportaciones de alto valor agregado a la UE.</div></div>
+        <div class="signal-box red"><div class="signal-box-title">↓ Euro débil (baja EUR/USD)</div><div class="signal-box-text">La carne uruguaya se encarece para compradores europeos. Menor competitividad frente a proveedores con moneda más débil. Posible reducción de demanda de cortes premium europeos.</div></div>
+      </div>
+    </div>
+    <div class="market-card-bottom">
+      <div class="market-conversion">Por encima de 1,05 = Euro fuerte = positivo UY &nbsp;|&nbsp; Actual: ~1,08</div>
+      <a href="https://www.tradingview.com/chart/?symbol=FX%3AEURUSD&interval=W" target="_blank">Ver gráfico en TradingView ↗</a>
+    </div>
+  </div>
+
+  <div class="market-card">
+    <div class="market-card-top">
+      <div class="market-card-header">
+        <div><div class="market-name">USD / BRL</div><div class="market-sym">FX:USDBRL · Spot · Tiempo real</div></div>
+        <div class="tv-badge imp-dn">Brasil = mayor exportador mundial · Competidor directo</div>
+      </div>
+      <div class="market-desc">Brasil es el mayor exportador de carne bovina del mundo y el principal competidor de Uruguay en China (35% de exportaciones UY) y EE.UU. Cuando el real brasileño se deprecia, Brasil puede exportar carne más barata en dólares y gana competitividad contra Uruguay. Es el indicador de competitividad regional más importante.</div>
+      <div class="signal-grid">
+        <div class="signal-box green"><div class="signal-box-title">↓ USD/BRL baja (real fuerte)</div><div class="signal-box-text">La carne brasileña se encarece en USD. Brasil pierde competitividad relativa. Uruguay puede mantener o mejorar su participación de mercado en China y EE.UU. sin bajar precios.</div></div>
+        <div class="signal-box red"><div class="signal-box-title">↑ USD/BRL sube (real débil)</div><div class="signal-box-text">Brasil exporta carne más barata. Gana mercado en China y EE.UU. a costas de Uruguay. Los compradores internacionales pueden presionar a la baja los precios de la carne uruguaya para igualar la oferta brasileña.</div></div>
+      </div>
+    </div>
+    <div class="market-card-bottom">
+      <div class="market-conversion">USD/BRL arriba de 6 = real muy débil = Brasil muy competitivo</div>
+      <a href="https://www.tradingview.com/chart/?symbol=FX%3AUSDBRL&interval=W" target="_blank">Ver gráfico en TradingView ↗</a>
+    </div>
+  </div>
+
+  <div class="market-card">
+    <div class="market-card-top">
+      <div class="market-card-header">
+        <div><div class="market-name">USD / UYU</div><div class="market-sym">FX:USDUYU · Spot · Tiempo real</div></div>
+        <div class="tv-badge imp-neu">Tipo de cambio local · Rentabilidad en pesos</div>
+      </div>
+      <div class="market-desc">Uruguay exporta en dólares pero la mayoría de sus costos están en pesos uruguayos: mano de obra, arrendamientos, veterinaria, servicios. Cuando el dólar sube menos que la inflación (o baja), los costos en pesos se vuelven más caros en términos de dólares, comprimiendo el margen real del productor aunque el precio internacional esté bien.</div>
+      <div class="signal-grid">
+        <div class="signal-box green"><div class="signal-box-title">↑ Dólar sube en UY</div><div class="signal-box-text">Los costos en pesos se abaratan en USD. El margen real del productor mejora. Los arrendamientos en dólares son más accesibles. La deuda en USD se vuelve más pesada en pesos.</div></div>
+        <div class="signal-box red"><div class="signal-box-title">↓ Dólar quieto o baja</div><div class="signal-box-text">Los costos en pesos suben en términos de dólares. El margen real se comprime aunque el precio internacional esté bien. El productor percibe que "todo está caro" a pesar de buenos precios del ganado.</div></div>
+      </div>
+    </div>
+    <div class="market-card-bottom">
+      <div class="market-conversion">Dólar actual en UY: ~$40,5 pesos uruguayos</div>
+      <a href="https://www.tradingview.com/chart/?symbol=FX%3AUSDUYU&interval=W" target="_blank">Ver gráfico en TradingView ↗</a>
+    </div>
+  </div>
+
+  <div class="ai-panel">
+    <div class="ai-header"><div class="ai-dot"></div><div class="ai-title">Asistente AgroRadar</div><div class="ai-subtitle">Aprendé a interpretar los mercados internacionales</div></div>
+    <div class="ai-messages" id="msgs-internacional">
+      <div class="ai-msg bot"><div class="ai-avatar bot">AR</div><div class="ai-bubble">Estoy para ayudarte a interpretar cualquier indicador internacional. Podés preguntarme sobre un gráfico específico, cómo se relaciona con los precios del INAC, o qué estrategia tomar según el panorama actual. ¿Por dónde empezamos?</div></div>
+    </div>
+    <div class="ai-quick-btns">
+      <button class="ai-quick" onclick="sendQuick('internacional','El real brasileño está débil (USD/BRL arriba de 6). ¿Cómo afecta esto a los precios de la carne uruguaya en China y cuánto tiempo tarda en sentirse?')">¿Cómo afecta el real débil?</button>
+      <button class="ai-quick" onclick="sendQuick('internacional','¿Qué pasa si el Live Cattle en EE.UU. empieza a bajar? ¿En cuántas semanas lo sentimos en el precio del novillo uruguayo?')">¿Tiempo de rezago Live Cattle?</button>
+      <button class="ai-quick" onclick="sendQuick('internacional','Mirando todos los indicadores internacionales juntos hoy (maíz bajo, Live Cattle alto, euro fuerte, real débil), ¿cuál es el panorama neto para Uruguay?')">Panorama integrado actual</button>
+      <button class="ai-quick" onclick="sendQuick('internacional','¿Cómo leo un gráfico semanal de TradingView? ¿Qué debo mirar primero para entender si un precio está caro o barato?')">¿Cómo leer un gráfico semanal?</button>
+    </div>
+    <div class="ai-input-row">
+      <input class="ai-input" id="inp-internacional" placeholder="Preguntá sobre cualquier indicador..." onkeydown="if(event.key==='Enter')sendMsg('internacional')">
+      <button class="ai-send" id="btn-internacional" onclick="sendMsg('internacional')">Enviar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     LÁCTEOS
+══════════════════════════════════════ -->
+<div class="page" id="p-lacteos">
+  <div class="page-header">
+    <div><div class="page-title">Mercado Lácteo</div><div class="page-sub">GDT · Leche en polvo · Manteca · Remitente Uruguay</div></div>
+  </div>
+  <div style="background:var(--azul-light);border:1px solid #bcd4f8;border-radius:9px;padding:11px 14px;margin-bottom:16px;font-size:11px;color:#1e3a5f;line-height:1.6;">
+    <strong>¿Por qué seguir el mercado lácteo si sos ganadero?</strong> El sector lácteo compite por la misma tierra y mano de obra que la ganadería. Cuando el precio de la leche sube, los tamberos pueden pagar más de arrendamiento, los campos doble propósito se valorizan, y hay mayor demanda de vaquillonas y toros. Los ciclos lácteos y ganaderos están interrelacionados en Uruguay.
+  </div>
+
+  <div class="metrics">
+    <div class="mc"><div class="mc-label">GDT WMP</div><div class="mc-value">3.615</div><div class="mc-delta up">US$/ton · +18% acum. 2026</div></div>
+    <div class="mc"><div class="mc-label">Manteca GDT</div><div class="mc-value">7.200</div><div class="mc-delta up">US$/ton · Nivel alto</div></div>
+    <div class="mc"><div class="mc-label">SMP GDT</div><div class="mc-value">2.850</div><div class="mc-delta neu">US$/ton · Estable</div></div>
+    <div class="mc"><div class="mc-label">Tendencia GDT</div><div class="mc-value" style="font-size:16px;color:#1D9E75;">Alcista</div><div class="mc-delta up">11 bajas en 2025 → rebote 2026</div></div>
+  </div>
+
+  <div class="grid2">
+    <div class="market-card">
+      <div class="market-card-top">
+        <div class="market-card-header">
+          <div><div class="market-name">GDT — Global Dairy Trade</div><div class="market-sym">Subasta internacional · Cada 2 semanas · Precio en USD/ton</div></div>
+          <div class="tv-badge imp-up">Referencia mundial lácteos</div>
+        </div>
+        <div class="market-desc">El GDT es la principal subasta electrónica de productos lácteos del mundo, organizada por Fonterra (Nueva Zelanda). Se realiza cada dos semanas y fija el precio de referencia para leche entera en polvo (WMP), descremada (SMP), manteca y caseína. Uruguay exporta principalmente WMP y caseína, por lo que el GDT es el termómetro directo del valor de la leche uruguaya exportada.</div>
+        <div class="signal-grid">
+          <div class="signal-box green"><div class="signal-box-title">↑ GDT sube</div><div class="signal-box-text">Mejor ingreso para las industrias lácteas uruguayas. Mayor precio al remitente. Los tamberos pueden pagar más de arrendamiento. Vaquillonas lecheras y toros se valorizan.</div></div>
+          <div class="signal-box red"><div class="signal-box-title">↓ GDT baja</div><div class="signal-box-text">Menor ingreso para la industria. Presión sobre el precio al remitente. Los tamberos ajustan costos. Algunos campos doble propósito pueden volcarse más a la ganadería de carne.</div></div>
+        </div>
+      </div>
+      <div class="market-card-bottom">
+        <div class="market-conversion">Próxima subasta GDT: ~15 abril 2026</div>
+        <a href="https://www.globaldairytrade.info/en/product-results/" target="_blank">Ver resultados GDT ↗</a>
+      </div>
+    </div>
+
+    <div class="market-card">
+      <div class="market-card-top">
+        <div class="market-card-header">
+          <div><div class="market-name">Precio al remitente Uruguay</div><div class="market-sym">INALE · Promedio ponderado · US$/100 litros</div></div>
+          <div class="tv-badge imp-neu">Referencia local tamberos</div>
+        </div>
+        <div class="market-desc">El precio al remitente es lo que efectivamente recibe el tambero por cada 100 litros de leche entregados a la industria. Lo publica el INALE (Instituto Nacional de la Leche) mensualmente. Tiene un rezago de 4-6 semanas respecto al GDT porque los contratos con la industria son mensuales o trimestrales.</div>
+        <div class="signal-grid">
+          <div class="signal-box green"><div class="signal-box-title">Cuando mejora</div><div class="signal-box-text">El tambero tiene más margen. Puede invertir en pasturas y mejoras. Compite más fuerte por campos con el ganadero de carne. Los arrendamientos en zonas lecheras suben.</div></div>
+          <div class="signal-box red"><div class="signal-box-title">Cuando cae</div><div class="signal-box-text">El tambero ajusta gastos. Algunos convierten parte del rodeo a cría o invernada. Mayor oferta de vaquillonas en el mercado de reposición ganadero. Menor competencia por tierra.</div></div>
+        </div>
+      </div>
+      <div class="market-card-bottom">
+        <div class="market-conversion">Última lectura disponible: consultar INALE.org.uy</div>
+        <a href="https://www.inale.org/" target="_blank">Ver datos INALE ↗</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="ai-panel">
+    <div class="ai-header"><div class="ai-dot"></div><div class="ai-title">Asistente AgroRadar</div><div class="ai-subtitle">Consultá sobre el mercado lácteo y su relación con la ganadería</div></div>
+    <div class="ai-messages" id="msgs-lacteos">
+      <div class="ai-msg bot"><div class="ai-avatar bot">AR</div><div class="ai-bubble">El GDT arrancó 2026 con fuerza: WMP en US$3.615/ton, +18% acumulado en el año después de 11 bajas consecutivas en 2025. ¿Qué querés saber sobre el mercado lácteo y cómo impacta en la ganadería?</div></div>
+    </div>
+    <div class="ai-quick-btns">
+      <button class="ai-quick" onclick="sendQuick('lacteos','¿Cómo afecta la suba del GDT en 2026 al precio de arrendamiento de campos en zonas lecheras de Uruguay?')">GDT alto → ¿sube el campo?</button>
+      <button class="ai-quick" onclick="sendQuick('lacteos','¿Vale la pena tener vacas doble propósito con los precios actuales de leche y carne?')">¿Conviene doble propósito?</button>
+      <button class="ai-quick" onclick="sendQuick('lacteos','Explicame cómo funciona el GDT, cómo se relaciona con el precio al remitente uruguayo y cuánto tarda en trasladarse')">¿Cómo funciona el GDT?</button>
+    </div>
+    <div class="ai-input-row">
+      <input class="ai-input" id="inp-lacteos" placeholder="Preguntá sobre lácteos..." onkeydown="if(event.key==='Enter')sendMsg('lacteos')">
+      <button class="ai-send" id="btn-lacteos" onclick="sendMsg('lacteos')">Enviar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     INFORMES
+══════════════════════════════════════ -->
+<div class="page" id="p-informes">
+  <div class="page-header">
+    <div><div class="page-title">Informes semanales</div><div class="page-sub">Análisis del mercado semana a semana · 2026</div></div>
+  </div>
+  <div style="background:var(--verde-light);border:1px solid #b8e8d8;border-radius:9px;padding:11px 14px;margin-bottom:16px;font-size:11px;color:var(--verde-dark);line-height:1.6;">
+    Acá irás subiendo los informes semanales que publiques en Instagram. Cada semana agregás un nuevo bloque con el análisis del mercado — precios, señales, contexto internacional y recomendaciones.
+  </div>
+  <div class="informe-card">
+    <div class="informe-num">12</div>
+    <div>
+      <div class="informe-title">Semana N°12 — Baja generalizada, ¿corrección o tendencia?</div>
+      <div class="informe-date">15 al 21 de marzo de 2026</div>
+      <div class="informe-text">El mercado registró una baja generalizada en todas las categorías de hacienda gorda: novillo -5,5%, vaca -6,4%, vaquillona -5,4% en una semana. Demanda retraída con faena sostenida por corrales y disparidad en valores. Sin embargo, el precio móvil de exportación se mantiene en US$5.489/ton y el contexto internacional sigue favorable. 13 de 17 categorías de reposición bajaron, pero los terneros de exportación y piezas de cría subieron. La lectura es que se trata de una corrección transitoria mientras los corrales sostienen la oferta, no del inicio de una tendencia bajista. Clave a monitorear: las próximas 3-4 semanas.</div>
+    </div>
+  </div>
+  <div style="text-align:center;padding:20px;font-size:11px;color:#bbb;border:1px dashed #e0e0d8;border-radius:10px;">
+    Los próximos informes se agregarán aquí semana a semana.
+  </div>
+</div>
+
+</main>
+
+<script>
+// ── AUTH ──
+if (!sessionStorage.getItem('ar_auth')) window.location.href = 'index.html';
+
+// ── NAV ──
+function goPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
+  document.querySelectorAll('.nav-link').forEach(b => b.classList.remove('on'));
+  document.getElementById('p-' + id).classList.add('on');
+  const nl = document.getElementById('nl-' + id);
+  if (nl) nl.classList.add('on');
+  if (window.innerWidth <= 900) document.getElementById('sidebar').classList.remove('open');
+  window.scrollTo(0,0);
+}
+
+function logout() { sessionStorage.removeItem('ar_auth'); window.location.href = 'index.html'; }
+
+// ── SIM TABS ──
+function goSimTab(id, btn) {
+  document.querySelectorAll('.sim-tab').forEach(t => t.classList.remove('on'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('on'));
+  document.getElementById('st-' + id).classList.add('on');
+  btn.classList.add('on');
+}
+
+// ── SIMULADORES ──
+function fmt(n) { return 'US$ ' + n.toFixed(2); }
+
+function calcInv() {
+  const pc=+document.getElementById('inv-pc').value||0, ppc=+document.getElementById('inv-ppc').value||0;
+  const pv=+document.getElementById('inv-pv').value||0, ppv=+document.getElementById('inv-ppv').value||0;
+  const dias=+document.getElementById('inv-dias').value||0, cop=+document.getElementById('inv-cop').value||0;
+  const sup=+document.getElementById('inv-sup').value||0;
+  const meses=dias/30, cCompra=pc*ppc, gpeso=pv-pc, gdp=dias>0?(gpeso/dias*1000).toFixed(0):0;
+  const cOp=cop*meses, cSup=sup*meses, ingreso=pv*ppv, margen=ingreso-cCompra-cOp-cSup;
+  const roi=cCompra>0?(margen/cCompra*100).toFixed(1):0;
+  document.getElementById('inv-r1').textContent=fmt(cCompra);
+  document.getElementById('inv-r2').textContent=gpeso.toFixed(0)+' kg';
+  document.getElementById('inv-r3').textContent=gdp+'g/día';
+  document.getElementById('inv-r4').textContent=fmt(cOp);
+  document.getElementById('inv-r5').textContent=fmt(cSup);
+  document.getElementById('inv-r6').textContent=fmt(ingreso);
+  document.getElementById('inv-r7').textContent=fmt(margen);
+  document.getElementById('inv-r8').textContent=roi+'%';
+  document.getElementById('inv-r9').innerHTML='<strong>'+fmt(margen)+'</strong>';
+  const v=document.getElementById('inv-verd');
+  if(margen>50){v.style.cssText='background:#e8f7f2;color:#0f6e56;';v.textContent='✓ Negocio viable — margen de US$'+margen.toFixed(0)+' por animal';}
+  else if(margen>0){v.style.cssText='background:#fdf5e0;color:#5a3c00;';v.textContent='⚠ Margen muy ajustado — revisá el precio de venta o reducí costos';}
+  else{v.style.cssText='background:#fdf0ef;color:#c0392b;';v.textContent='✗ No viable — pérdida de US$'+Math.abs(margen).toFixed(0)+' por animal con estos parámetros';}
+}
+
+function calcCria() {
+  const vacas=+document.getElementById('cr-vacas').value||0, prenez=+document.getElementById('cr-prenez').value||0;
+  const destete=+document.getElementById('cr-destete').value||0, ptern=+document.getElementById('cr-ptern').value||0;
+  const pesotern=+document.getElementById('cr-pesotern').value||0, cop=+document.getElementById('cr-cop').value||0;
+  const vvaca=+document.getElementById('cr-vvaca').value||0;
+  const terneros=Math.round(vacas*destete/100);
+  const ingreso=terneros*pesotern*ptern;
+  const margen=ingreso-cop, mpv=vacas>0?(margen/vacas).toFixed(0):0;
+  const roiRodeo=vvaca>0&&vacas>0?((margen/(vacas*vvaca))*100).toFixed(1):0;
+  document.getElementById('cr-r1').textContent=terneros+' terneros';
+  document.getElementById('cr-r2').textContent=fmt(ingreso);
+  document.getElementById('cr-r3').textContent=fmt(cop);
+  document.getElementById('cr-r4').textContent=fmt(margen);
+  document.getElementById('cr-r5').textContent='US$'+mpv+'/vaca/año';
+  document.getElementById('cr-r6').textContent=roiRodeo+'%';
+  document.getElementById('cr-r7').innerHTML='<strong>'+fmt(margen)+'</strong>';
+  const v=document.getElementById('cr-verd');
+  if(margen>0){v.style.cssText='background:#e8f7f2;color:#0f6e56;';v.textContent='✓ Sistema viable — US$'+mpv+' por vaca por año';}
+  else{v.style.cssText='background:#fdf0ef;color:#c0392b;';v.textContent='✗ No viable con estos parámetros — revisá % destete o costos operativos';}
+}
+
+function calcRecria() {
+  const pe=+document.getElementById('rec-pe').value||0, ppc=+document.getElementById('rec-ppc').value||0;
+  const ps=+document.getElementById('rec-ps').value||0, ppv=+document.getElementById('rec-ppv').value||0;
+  const dias=+document.getElementById('rec-dias').value||0, cop=+document.getElementById('rec-cop').value||0;
+  const inv=pe*ppc, gpeso=ps-pe, gdp=dias>0?(gpeso/dias*1000).toFixed(0):0;
+  const cOp=cop*(dias/30), ingreso=ps*ppv, margen=ingreso-inv-cOp;
+  document.getElementById('rec-r1').textContent=fmt(inv);
+  document.getElementById('rec-r2').textContent=gpeso.toFixed(0)+' kg';
+  document.getElementById('rec-r3').textContent=gdp+'g/día';
+  document.getElementById('rec-r4').textContent=fmt(cOp);
+  document.getElementById('rec-r5').textContent=fmt(ingreso);
+  document.getElementById('rec-r6').textContent=fmt(margen);
+  document.getElementById('rec-r7').innerHTML='<strong>'+fmt(margen)+'</strong>';
+  const v=document.getElementById('rec-verd');
+  if(margen>30){v.style.cssText='background:#e8f7f2;color:#0f6e56;';v.textContent='✓ Recría viable — US$'+margen.toFixed(0)+' por animal';}
+  else if(margen>0){v.style.cssText='background:#fdf5e0;color:#5a3c00;';v.textContent='⚠ Margen ajustado de US$'+margen.toFixed(0)+' — verificá precio de salida';}
+  else{v.style.cssText='background:#fdf0ef;color:#c0392b;';v.textContent='✗ No viable — pérdida de US$'+Math.abs(margen).toFixed(0)+' por animal';}
+}
+
+calcInv(); calcCria(); calcRecria();
+
+// ══════════════════════════════════════
+//  ASISTENTE IA — CONTEXTO DEL MERCADO
+// ══════════════════════════════════════
+const SYSTEM_PROMPT = `Sos el asistente de AgroRadar, una plataforma de inteligencia de mercados agropecuarios de Uruguay. Tu rol es el de un analista ganadero uruguayo con amplio conocimiento del mercado local e internacional.
+
+DATOS DEL MERCADO ACTUALES (semana 12/2026 — 15 al 21 de marzo de 2026):
+- Novillo gordo ACG: US$5,20/kg carcasa (↓ -0,30 vs sem. ant.) 
+- Vaca gorda ACG: US$4,83/kg carcasa (↓ -0,33)
+- Vaquillona ACG: US$5,08/kg carcasa (↓ -0,29)
+- Exportación móvil 30d: US$5.489/ton PC (Fuente: INAC-IMEx)
+- Novillo en pie INAC: US$3,092/kg (↓ -0,079)
+- Vaca en pie INAC: US$2,636/kg (↓ -0,055)
+- Ternero hasta 140kg: US$4,22/kg vivo (reposición ACG)
+- Ternero 141-180kg: US$4,00/kg vivo
+- Vaquillonas y Vacas Preñadas: US$1.060/cab (↓)
+- Piezas de Cría: US$649/cab (↑)
+- Ciclo ganadero: Fase 3 (Retención/Expansión), 18 meses en esta fase
+- Extracción 2025: 25% del rodeo (normal: 21-22%)
+- Faena 2025: 2,4 millones de cabezas (3er mayor en 25 años)
+- Live Cattle CME: en máximos históricos
+- Rodeo EE.UU.: 86,7M cab (mínimos de 60 años)
+- EUR/USD: ~1,082 (euro fuerte)
+- GDT WMP: US$3.615/ton (+18% acum. 2026)
+- El productor opera en Lavalleja, Uruguay (cría + invernada)
+
+ESTILO DE RESPUESTA:
+- Respondé en español rioplatense (uruguayo)
+- Sé directo y práctico, como un colega del campo que también entiende los números
+- Usá datos concretos cuando los tengas
+- Si no sabés algo con certeza, decilo claramente
+- Podés tener opinión y defenderla si el usuario quiere debatir
+- Respuestas de 3-5 párrafos máximo, claras y al punto
+- Si el usuario pregunta algo muy específico de su campo o negocio, pedí más detalles`;
+
+const histories = {};
+
+function getHistory(section) {
+  if (!histories[section]) histories[section] = [];
+  return histories[section];
+}
+
+function addMessage(section, role, text) {
+  getHistory(section).push({ role, content: text });
+  renderMessage(section, role, text);
+}
+
+function renderMessage(section, role, text) {
+  const container = document.getElementById('msgs-' + section);
+  if (!container) return;
+  const div = document.createElement('div');
+  div.className = 'ai-msg ' + (role === 'user' ? 'user' : 'bot');
+  div.innerHTML = `
+    <div class="ai-avatar ${role === 'user' ? 'user' : 'bot'}">${role === 'user' ? 'Vos' : 'AR'}</div>
+    <div class="ai-bubble">${text.replace(/\n/g,'<br>')}</div>`;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function showTyping(section) {
+  const container = document.getElementById('msgs-' + section);
+  const div = document.createElement('div');
+  div.className = 'ai-msg bot'; div.id = 'typing-' + section;
+  div.innerHTML = `<div class="ai-avatar bot">AR</div><div class="ai-typing"><span></span><span></span><span></span></div>`;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function hideTyping(section) {
+  const el = document.getElementById('typing-' + section);
+  if (el) el.remove();
+}
+
+async function sendMsg(section) {
+  const inp = document.getElementById('inp-' + section);
+  const btn = document.getElementById('btn-' + section);
+  const text = inp.value.trim();
+  if (!text) return;
+  inp.value = ''; btn.disabled = true;
+  addMessage(section, 'user', text);
+  showTyping(section);
+  try {
+    const msgs = getHistory(section).slice(-10);
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: SYSTEM_PROMPT,
+        messages: msgs
+      })
+    });
+    const data = await resp.json();
+    hideTyping(section);
+    const reply = data.content?.[0]?.text || 'No pude procesar la respuesta. Intentá de nuevo.';
+    addMessage(section, 'assistant', reply);
+  } catch(e) {
+    hideTyping(section);
+    addMessage(section, 'assistant', 'Hubo un error de conexión. Verificá tu internet e intentá de nuevo.');
+  }
+  btn.disabled = false;
+  inp.focus();
+}
+
+function sendQuick(section, text) {
+  const inp = document.getElementById('inp-' + section);
+  inp.value = text;
+  sendMsg(section);
+}
+</script>
+</body>
+</html>
